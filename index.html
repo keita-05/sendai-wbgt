@@ -27,7 +27,6 @@
         .ticker-face-icon { width: 44px; height: 44px; margin: 0 15px; }
         @keyframes ticker-anim { 0% { transform: translateX(0); } 100% { transform: translateX(-400%); } }
 
-        /* PNG表示用 */
         .png-slide { display: none; width: 512px; height: 128px; position: absolute; top: 0; left: 0; }
         .png-slide.active { display: block; }
         .png-slide img { width: 512px; height: 128px; object-fit: fill; display: block; }
@@ -48,7 +47,6 @@
 
 <div class="container">
 
-    <!-- Set1: 時計 -->
     <div id="set1" class="set-group active">
         <div class="panel"><svg class="face-svg"><use class="face-use" href="#face-0"/></svg></div>
         <div class="panel"><div class="label">時刻</div><div class="clock-hm time-val">--:--</div></div>
@@ -56,7 +54,6 @@
         <div class="panel"><div class="label">時刻</div><div class="clock-hm time-val">--:--</div></div>
     </div>
 
-    <!-- Set2: 天気 -->
     <div id="set2" class="set-group">
         <div class="panel"><div class="label">現在の天気</div><svg class="weather-svg"><use id="weather-icon" href="#icon-sunny"/></svg></div>
         <div class="panel"><div class="label">気温</div><div class="val"><span class="temp-val">--</span><span class="unit">℃</span></div></div>
@@ -64,7 +61,6 @@
         <div class="panel"><div class="label">暑さ指数</div><svg class="face-svg" style="width:75px;height:75px;"><use class="face-use" href="#face-0"/></svg></div>
     </div>
 
-    <!-- Set3: テッカー -->
     <div id="set3" class="set-group">
         <div class="pan-content">
             <div class="ticker-container">
@@ -73,21 +69,21 @@
         </div>
     </div>
 
-    <!-- PNG スライド（5枚） -->
+    <!-- PNG スライド（英語名） -->
     <div id="png1" class="png-slide">
-        <img src="ほぼ安全.png" alt="ほぼ安全">
+        <img src="level1.png" alt="ほぼ安全">
     </div>
     <div id="png2" class="png-slide">
-        <img src="注意.png" alt="注意">
+        <img src="level2.png" alt="注意">
     </div>
     <div id="png3" class="png-slide">
-        <img src="警戒.png" alt="警戒">
+        <img src="level3.png" alt="警戒">
     </div>
     <div id="png4" class="png-slide">
-        <img src="厳重警戒.png" alt="厳重警戒">
+        <img src="level4.png" alt="厳重警戒">
     </div>
     <div id="png5" class="png-slide">
-        <img src="危険.png" alt="危険">
+        <img src="level5.png" alt="危険">
     </div>
 
 </div>
@@ -97,33 +93,23 @@
     const lat = params.get('lat') || '34.6937';
     const lon = params.get('lon') || '135.5023';
 
-    // ローテーション順：set1→set2→set3→png1→png2→png3→png4→png5→ループ
     const sequence = [
-        { id: 'set1',  type: 'set', duration: 10000 },
-        { id: 'set2',  type: 'set', duration: 10000 },
-        { id: 'set3',  type: 'set', duration: 15000 },
-        { id: 'png1',  type: 'png', duration: 10000 },
-        { id: 'png2',  type: 'png', duration: 10000 },
-        { id: 'png3',  type: 'png', duration: 10000 },
-        { id: 'png4',  type: 'png', duration: 10000 },
-        { id: 'png5',  type: 'png', duration: 10000 },
+        { id: 'set1', duration: 10000 },
+        { id: 'set2', duration: 10000 },
+        { id: 'set3', duration: 15000 },
+        { id: 'png1', duration: 10000 },
+        { id: 'png2', duration: 10000 },
+        { id: 'png3', duration: 10000 },
+        { id: 'png4', duration: 10000 },
+        { id: 'png5', duration: 10000 },
     ];
     let currentIndex = 0;
 
     function showNext() {
-        // 現在のものを非表示
-        const cur = sequence[currentIndex];
-        const curEl = document.getElementById(cur.id);
-        if (cur.type === 'set') curEl.classList.remove('active');
-        else curEl.classList.remove('active');
-
-        // 次へ
+        document.getElementById(sequence[currentIndex].id).classList.remove('active');
         currentIndex = (currentIndex + 1) % sequence.length;
-        const next = sequence[currentIndex];
-        const nextEl = document.getElementById(next.id);
-        nextEl.classList.add('active');
-
-        setTimeout(showNext, next.duration);
+        document.getElementById(sequence[currentIndex].id).classList.add('active');
+        setTimeout(showNext, sequence[currentIndex].duration);
     }
 
     async function updateWeather() {
