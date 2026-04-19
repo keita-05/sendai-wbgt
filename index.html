@@ -2,35 +2,35 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>WBGT Multi-Language Signage - Final Version</title>
+    <title>WBGT Multi-Language Signage</title>
     <style>
         body { margin: 0; padding: 0; background-color: #000; overflow: hidden; font-family: "Inter", "Hiragino Kaku Gothic ProN", sans-serif; }
         .container { width: 512px; height: 128px; position: relative; overflow: hidden; }
         .set-group { display: none; width: 512px; height: 128px; flex-direction: row; position: absolute; top: 0; left: 0; }
         .active { display: flex !important; }
-        
+
         .panel { width: 128px; height: 128px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-sizing: border-box; border-right: 1px solid #333; }
         .label { font-size: 13px; font-weight: 500; color: #999; margin-bottom: 6px; letter-spacing: 0.05em; }
-        
-        /* 時計：視認性重視のデジタル表示 */
         .time-val { font-size: 40px; font-weight: 800; color: #fff; line-height: 1; font-variant-numeric: tabular-nums; }
-        
         .val { font-size: 34px; font-weight: 700; color: #fff; line-height: 1; }
         .unit { font-size: 16px; margin-left: 2px; font-weight: 400; }
-        
         .face-svg { width: 95px; height: 95px; }
         .weather-svg { width: 80px; height: 80px; }
 
         .pan-content { width: 512px; height: 128px; background-color: #fff; display: flex; align-items: center; overflow: hidden; }
         .ticker-container { width: 100%; height: 128px; position: relative; display: flex; align-items: center; }
-        .ticker-text { 
-            white-space: nowrap; font-size: 28px; font-weight: 800; color: #000; 
+        .ticker-text {
+            white-space: nowrap; font-size: 28px; font-weight: 800; color: #000;
             position: absolute; padding-left: 100%; display: flex; align-items: center;
-            animation: ticker-anim 60s linear infinite; 
+            animation: ticker-anim 60s linear infinite;
         }
         .ticker-face-icon { width: 44px; height: 44px; margin: 0 15px; }
-
         @keyframes ticker-anim { 0% { transform: translateX(0); } 100% { transform: translateX(-400%); } }
+
+        /* PNG表示用 */
+        .png-slide { display: none; width: 512px; height: 128px; position: absolute; top: 0; left: 0; }
+        .png-slide.active { display: block; }
+        .png-slide img { width: 512px; height: 128px; object-fit: fill; display: block; }
     </style>
 </head>
 <body>
@@ -47,20 +47,24 @@
 </svg>
 
 <div class="container">
+
+    <!-- Set1: 時計 -->
     <div id="set1" class="set-group active">
         <div class="panel"><svg class="face-svg"><use class="face-use" href="#face-0"/></svg></div>
         <div class="panel"><div class="label">時刻</div><div class="clock-hm time-val">--:--</div></div>
         <div class="panel"><svg class="face-svg"><use class="face-use" href="#face-0"/></svg></div>
         <div class="panel"><div class="label">時刻</div><div class="clock-hm time-val">--:--</div></div>
     </div>
-    
+
+    <!-- Set2: 天気 -->
     <div id="set2" class="set-group">
         <div class="panel"><div class="label">現在の天気</div><svg class="weather-svg"><use id="weather-icon" href="#icon-sunny"/></svg></div>
         <div class="panel"><div class="label">気温</div><div class="val"><span class="temp-val">--</span><span class="unit">℃</span></div></div>
         <div class="panel"><div class="label">湿度</div><div class="val"><span class="humi-val">--</span><span class="unit">%</span></div></div>
         <div class="panel"><div class="label">暑さ指数</div><svg class="face-svg" style="width:75px;height:75px;"><use class="face-use" href="#face-0"/></svg></div>
     </div>
-    
+
+    <!-- Set3: テッカー -->
     <div id="set3" class="set-group">
         <div class="pan-content">
             <div class="ticker-container">
@@ -68,13 +72,59 @@
             </div>
         </div>
     </div>
+
+    <!-- PNG スライド（5枚） -->
+    <div id="png1" class="png-slide">
+        <img src="ほぼ安全.png" alt="ほぼ安全">
+    </div>
+    <div id="png2" class="png-slide">
+        <img src="注意.png" alt="注意">
+    </div>
+    <div id="png3" class="png-slide">
+        <img src="警戒.png" alt="警戒">
+    </div>
+    <div id="png4" class="png-slide">
+        <img src="厳重警戒.png" alt="厳重警戒">
+    </div>
+    <div id="png5" class="png-slide">
+        <img src="危険.png" alt="危険">
+    </div>
+
 </div>
 
 <script>
     const params = new URLSearchParams(window.location.search);
-    const lat = params.get('lat') || '38.2682'; 
-    const lon = params.get('lon') || '140.8694';
-    let currentSet = 1;
+    const lat = params.get('lat') || '34.6937';
+    const lon = params.get('lon') || '135.5023';
+
+    // ローテーション順：set1→set2→set3→png1→png2→png3→png4→png5→ループ
+    const sequence = [
+        { id: 'set1',  type: 'set', duration: 10000 },
+        { id: 'set2',  type: 'set', duration: 10000 },
+        { id: 'set3',  type: 'set', duration: 15000 },
+        { id: 'png1',  type: 'png', duration: 10000 },
+        { id: 'png2',  type: 'png', duration: 10000 },
+        { id: 'png3',  type: 'png', duration: 10000 },
+        { id: 'png4',  type: 'png', duration: 10000 },
+        { id: 'png5',  type: 'png', duration: 10000 },
+    ];
+    let currentIndex = 0;
+
+    function showNext() {
+        // 現在のものを非表示
+        const cur = sequence[currentIndex];
+        const curEl = document.getElementById(cur.id);
+        if (cur.type === 'set') curEl.classList.remove('active');
+        else curEl.classList.remove('active');
+
+        // 次へ
+        currentIndex = (currentIndex + 1) % sequence.length;
+        const next = sequence[currentIndex];
+        const nextEl = document.getElementById(next.id);
+        nextEl.classList.add('active');
+
+        setTimeout(showNext, next.duration);
+    }
 
     async function updateWeather() {
         try {
@@ -89,7 +139,7 @@
             else if (code >= 51) wIcon = "#icon-rainy";
             document.getElementById('weather-icon').setAttribute('href', wIcon);
 
-            const wbgt = (0.725 * temp) + (0.0368 * humi) + (0.00115 * temp * humi) - 2.503;
+            const wbgt = (0.725 * temp) + (0.0368 * humi) + (0.00364 * temp * humi) - 3.246;
             let lv = 0;
             if (wbgt >= 31) lv = 4; else if (wbgt >= 28) lv = 3; else if (wbgt >= 25) lv = 2; else if (wbgt >= 21) lv = 1;
 
@@ -97,8 +147,8 @@
                 {jp:"【ほぼ安全】適宜水分補給", en:"Safe: Stay hydrated", vn:"An toàn: Bổ sung nước", cn:"基本安全：注意补水"},
                 {jp:"【注意】積極的に水分補給", en:"Caution: Actively hydrate", vn:"Chú ý: Uống nước thường xuyên", cn:"注意：及时补水"},
                 {jp:"【警戒】定期的に休憩", en:"Warning: Take regular breaks", vn:"Cảnh báo: Nghỉ ngơi định kỳ", cn:"警戒：定时休息"},
-                {jp:"【厳重警戒】激しい作業中止", en:"Severe Warning: Stop intense work", vn:"Cảnh báo nghiêm trọng: Ngừng làm việc nặng", cn:"严重警戒：停止剧烈作業"},
-                {jp:"【危険】作業を直ちに中止", en:"Danger: Stop work immediately", vn:"Nguy hiểm: Dừng công việc ngay", cn:"危険：立即停止作業"}
+                {jp:"【厳重警戒】激しい作業中止", en:"Severe Warning: Stop intense work", vn:"Cảnh báo nghiêm trọng: Ngừng làm việc nặng", cn:"严重警戒：停止剧烈作业"},
+                {jp:"【危険】作業を直ちに中止", en:"Danger: Stop work immediately", vn:"Nguy hiểm: Dừng công việc ngay", cn:"危険：立即停止作业"}
             ];
 
             document.querySelectorAll('.temp-val').forEach(el => el.innerText = Math.round(temp));
@@ -111,37 +161,19 @@
         } catch (e) { console.error("Weather fetch error:", e); }
     }
 
-    function updateDigitalClock() {
+    function updateClock() {
         const now = new Date();
         const h = now.getHours().toString().padStart(2, '0');
         const m = now.getMinutes().toString().padStart(2, '0');
-        document.querySelectorAll('.clock-hm').forEach(el => el.innerText = h + ":" + m);
-    }
-
-    function switchDisplay() {
-        document.getElementById('set' + currentSet).classList.remove('active');
-        currentSet = (currentSet % 3) + 1;
-        document.getElementById('set' + currentSet).classList.add('active');
-
-        let nextDelay = 15000; // 基本10秒
-        if (currentSet === 3) {
-            nextDelay = 15000; // ニュースティカーは15秒
-        }
-
-        setTimeout(switchDisplay, nextDelay);
+        document.querySelectorAll('.clock-hm').forEach(el => el.innerText = h + ':' + m);
     }
 
     window.onload = function() {
-        updateDigitalClock();
+        updateClock();
         updateWeather();
-
-        // 時計更新タイマー
-        setInterval(updateDigitalClock, 1000);
-        // 天気更新タイマー（5分おき）
+        setInterval(updateClock, 1000);
         setInterval(updateWeather, 300000);
-
-        // 最初の切り替え予約（10秒後に実行）
-        setTimeout(switchDisplay, 10000);
+        setTimeout(showNext, sequence[0].duration);
     };
 </script>
 </body>
